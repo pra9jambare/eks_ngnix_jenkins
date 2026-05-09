@@ -24,14 +24,14 @@ pipeline {
                      credentialsId: 'aws-cred']
                 ]) {
                     sh '''
-                    echo "Checking AWS Identity..."
+                    echo "🔐 Checking AWS identity..."
                     aws sts get-caller-identity
                     '''
                 }
             }
         }
 
-        stage('Configure EKS Access') {
+        stage('Configure EKS') {
             steps {
                 withCredentials([
                     [$class: 'AmazonWebServicesCredentialsBinding',
@@ -40,12 +40,12 @@ pipeline {
                     sh '''
                     set -e
 
-                    echo "Updating kubeconfig for EKS..."
+                    echo "⚙️ Updating kubeconfig for EKS cluster..."
                     aws eks update-kubeconfig \
                         --region $AWS_REGION \
                         --name $CLUSTER_NAME
 
-                    echo "Testing cluster access..."
+                    echo "🧪 Testing cluster access..."
                     kubectl get nodes
                     '''
                 }
@@ -54,21 +54,29 @@ pipeline {
 
         stage('Deploy to EKS') {
             steps {
-                sh '''
-                echo "Deploying NGINX..."
-                kubectl apply -f deployment.yaml
-                kubectl apply -f service.yaml
-                '''
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                     credentialsId: 'aws-cred']
+                ]) {
+                    sh '''
+                    set -e
+
+                    echo "🚀 Deploying NGINX to EKS..."
+
+                    kubectl apply -f deployment.yaml
+                    kubectl apply -f service.yaml
+                    '''
+                }
             }
         }
 
         stage('Verify Deployment') {
             steps {
                 sh '''
-                echo "Pods:"
+                echo "📦 Pods:"
                 kubectl get pods
 
-                echo "Services:"
+                echo "🌐 Services:"
                 kubectl get svc
                 '''
             }
@@ -77,10 +85,10 @@ pipeline {
 
     post {
         success {
-            echo "✅ Deployment successful on EKS"
+            echo "✅ Deployment successful to EKS"
         }
         failure {
-            echo "❌ Deployment failed - check AWS credentials or kubeconfig"
+            echo "❌ Deployment failed — check AWS credentials or kubeconfig setup"
         }
     }
 }
