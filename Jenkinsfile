@@ -3,14 +3,17 @@ pipeline {
 
     environment {
         AWS_REGION = 'ap-south-1'
-        CLUSTER_NAME = 'demo-eks'
+        CLUSTER_NAME = 'eks-fargate-probe-cluster'
+        GIT_REPO = "https://github.com/pra9jambare/eks_ngnix_jenkins/"
     }
 
     stages {
 
         stage('Checkout Code') {
             steps {
-                git 'https://github.com/your-repo/eks-nginx.git'
+                  git credentialsId: '558df15d-7b93-44f8-8966-f423c8716be0',
+                    url: "${GIT_REPO}",
+                    branch: 'main'
             }
         }
 
@@ -18,8 +21,8 @@ pipeline {
             steps {
                 sh '''
                 aws eks update-kubeconfig \
-                  --region $AWS_REGION \
-                  --name $CLUSTER_NAME
+                  --region ap-south-1 \
+                  --name eks-fargate-probe-cluster
                 '''
             }
         }
