@@ -17,13 +17,14 @@ pipeline {
             }
         }
 
-        stage('AWS Identity Check') {
+        stage('Verify AWS Credentials') {
             steps {
                 withCredentials([
                     [$class: 'AmazonWebServicesCredentialsBinding',
-                     credentialsId: 'aws-cred']
+                     credentialsId: 'aws-creds']
                 ]) {
                     sh '''
+                    echo "Checking AWS Identity..."
                     aws sts get-caller-identity
                     '''
                 }
@@ -34,12 +35,18 @@ pipeline {
             steps {
                 withCredentials([
                     [$class: 'AmazonWebServicesCredentialsBinding',
-                     credentialsId: 'aws-cred']
+                     credentialsId: 'aws-creds']
                 ]) {
                     sh '''
+                    set -e
+
+                    echo "Updating kubeconfig for EKS..."
                     aws eks update-kubeconfig \
-                      --region $AWS_REGION \
-                      --name $CLUSTER_NAME
+                        --region $AWS_REGION \
+                        --name $CLUSTER_NAME
+
+                    echo "Testing cluster access..."
+                    kubectl get nodes
                     '''
                 }
             }
@@ -48,6 +55,7 @@ pipeline {
         stage('Deploy to EKS') {
             steps {
                 sh '''
+                echo "Deploying NGINX..."
                 kubectl apply -f deployment.yaml
                 kubectl apply -f service.yaml
                 '''
@@ -57,7 +65,10 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 sh '''
+                echo "Pods:"
                 kubectl get pods
+
+                echo "Services:"
                 kubectl get svc
                 '''
             }
@@ -66,10 +77,10 @@ pipeline {
 
     post {
         success {
-            echo "✅ Deployment successful to EKS"
+            echo "✅ Deployment successful on EKS"
         }
         failure {
-            echo "❌ Deployment failed - check logs"
+            echo "❌ Deployment failed - check AWS credentials or kubeconfig"
         }
     }
 }
