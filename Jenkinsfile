@@ -65,6 +65,8 @@ pipeline {
 
                     kubectl apply -f deployment.yaml
                     kubectl apply -f service.yaml
+                    echo "⏳ Waiting for deployment rollout to complete..."
+                    kubectl rollout status deployment/nginx-deployment --timeout=120s
                     '''
                 }
             }
