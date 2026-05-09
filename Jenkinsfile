@@ -4,26 +4,44 @@ pipeline {
     environment {
         AWS_REGION = 'ap-south-1'
         CLUSTER_NAME = 'eks-fargate-probe-cluster'
-        GIT_REPO = "https://github.com/pra9jambare/eks_ngnix_jenkins/"
+        GIT_REPO = "https://github.com/pra9jambare/eks_ngnix_jenkins"
     }
 
     stages {
 
         stage('Checkout Code') {
             steps {
-                  git credentialsId: '558df15d-7b93-44f8-8966-f423c8716be0',
+                git credentialsId: '558df15d-7b93-44f8-8966-f423c8716be0',
                     url: "${GIT_REPO}",
                     branch: 'main'
             }
         }
 
+        stage('AWS Identity Check') {
+            steps {
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                     credentialsId: 'aws-cred']
+                ]) {
+                    sh '''
+                    aws sts get-caller-identity
+                    '''
+                }
+            }
+        }
+
         stage('Configure EKS Access') {
             steps {
-                sh '''
-                aws eks update-kubeconfig \
-                  --region ap-south-1 \
-                  --name eks-fargate-probe-cluster
-                '''
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                     credentialsId: 'aws-cred']
+                ]) {
+                    sh '''
+                    aws eks update-kubeconfig \
+                      --region $AWS_REGION \
+                      --name $CLUSTER_NAME
+                    '''
+                }
             }
         }
 
@@ -43,6 +61,15 @@ pipeline {
                 kubectl get svc
                 '''
             }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Deployment successful to EKS"
+        }
+        failure {
+            echo "❌ Deployment failed - check logs"
         }
     }
 }
