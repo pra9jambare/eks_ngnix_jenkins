@@ -21,7 +21,7 @@ pipeline {
             steps {
                 withCredentials([
                     [$class: 'AmazonWebServicesCredentialsBinding',
-                     credentialsId: 'aws-creds']
+                     credentialsId: 'aws-cred']
                 ]) {
                     sh '''
                     echo "Checking AWS Identity..."
@@ -35,7 +35,7 @@ pipeline {
             steps {
                 withCredentials([
                     [$class: 'AmazonWebServicesCredentialsBinding',
-                     credentialsId: 'aws-creds']
+                     credentialsId: 'aws-cred']
                 ]) {
                     sh '''
                     set -e
